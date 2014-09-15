@@ -92,12 +92,13 @@ class Dispatcher(object):
         priorityset = []#当前已有的优先级
         guessQ = Queue.PriorityQueue()
         bottom = 0
+        for item in li:
+            priorityset.append(item.priority_)
         for attempt in range(1, 11):
             for item in li:
                 if item.arrivalTime_ >= limit:
                     continue
                 guessQ.put(item)
-                priorityset.append(item.priority_)
             guessPriority = (top + bottom)/2
             if priorityset.__contains__(guessPriority) == True:
                 top += 1
