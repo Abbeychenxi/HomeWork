@@ -94,22 +94,22 @@ class Dispatcher(object):
         bottom = 0
         for item in li:
             priorityset.append(item.priority_)
-        for attempt in range(1, 11):
-            for item in li:
-                if item.arrivalTime_ >= limit:
+            if item.arrivalTime_ > limit:
                     continue
-                guessQ.put(item)
+            guessQ.put(item)
+        for attempt in range(1, 11):
+            tempQ = guessQ
             guessPriority = (top + bottom)/2
             if priorityset.__contains__(guessPriority) == True:
                 top += 1
                 continue
             taskWithoutPriority.priority_ = guessPriority
-            guessQ.put(taskWithoutPriority)
-            time = self.cpuStart(guessQ)
-            #print "get res: " + str(time)
+            tempQ.put(taskWithoutPriority)
+            time = self.cpuStart(tempQ)
+            print "get res: " + str(time)
             if time == setTime:
                 print("Success! find the priority: " + str(guessPriority))
-                return guessPriority
+                return guessPriority, tempQ
             elif time > setTime:
                 bottom = guessPriority
             else:
@@ -118,24 +118,35 @@ class Dispatcher(object):
         return -1
 
 
-task1 = Task(1, 3, 2, 1)
-task2 = Task(2, 1, 3, 2)
-task3 = Task(3, 4, 5, 3)
-task4 = Task(5, 1, 4, 4)
-task5 = Task(100, 10, 1, 5)
+#task1 = Task(0, 2, 2, 1)
+#task2 = Task(1, 3, 3, 2)
+#task3 = Task(3, 4, 5, 3)
+#task4 = Task(5, 1, 4, 4)
+#task5 = Task(100, 10, 1, 5)
 
-task6 = Task(5, 2, 0, 0)
-setTime = 7
+#task6 = Task(4, 3, -1, 0)
+#setTime = 7
 
-li = [task1, task2, task3, task4, task5]
+#li = [task1, task2]
 
-q = Queue.PriorityQueue()
-q.put(task1)
-q.put(task2)
-q.put(task3)
-q.put(task4)
-q.put(task5)
+#q = Queue.PriorityQueue()
+#q.put(task1)
+#q.put(task2)
+#q.put(task3)
+#q.put(task4)
+#q.put(task5)
+n = int(raw_input("任务数目: "))
+lis = []
+for t in range(0, n):
+    task_ = raw_input()
+    li = task_.split(" ")
+    task = Task(int(li[0]), int(li[1]), int(li[2]), t)
+    lis.append(task)
+
+setTime = int(raw_input("目标任务完成时间: "))
+
 
 cpuDispatch = Dispatcher()
-cpuDispatch.cpuStart(q)
-#cpuDispatch.guessTime(setTime, task6, li, 13)
+#cpuDispatch.cpuStart(q)
+cpuDispatch.guessTime(setTime, lis[0], lis, 5)
+
