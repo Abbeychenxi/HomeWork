@@ -30,13 +30,14 @@ class Dispatcher(object):
         nowTask = self.taskQueue.get()
         if len(self.cpu) == 0:#第一个任务直接进入cpu
             self.cpu.append(nowTask)
-            print "Task to complete id: %d" % (nowTask.id_)
+            #print "Task to complete id: %d" % (nowTask.id_)
         else:
             duringTime = nowTask.arrivalTime_ - self.cpu[0].arrivalTime_
             if self.cpu[0].taskQuantity_ <= duringTime:#当前cpu空闲，任务直接进入cpu
                 del self.cpu[0]
                 self.cpu.append(nowTask)
-                print "Task to complete id: %d" % (nowTask.id_)
+                return nowTask.arrivalTime_
+                #print "Task to complete id: %d" % (nowTask.id_)
             else:#退出当前任务，新任务进入cpu
                 quantity = self.cpu[0].taskQuantity_ - duringTime
                 if self.cpu[0].taskQuantity_ == 0:
@@ -44,36 +45,38 @@ class Dispatcher(object):
                     self.taskQueue.put(quitTask)
                     del self.cpu[0]
                     self.cpu.append(nowTask)
-                    print "Task to complete id: %d" % (nowTask.id_)
+                    return -1
+                    #print "Task to complete id: %d" % (nowTask.id_)
                 else:
                     quitTask = Task(nowTask.arrivalTime_+1, quantity, self.cpu[0].priority_, self.cpu[0].id_)
                     self.taskQueue.put(quitTask)
                     del self.cpu[0]
                     self.cpu.append(nowTask)
-                    print "Task to complete id: %d" % (nowTask.id_)
-                    print "Old task go back to queue id: %d" % (quitTask.id_)
+                    return -1
+                    #print "Task to complete id: %d" % (nowTask.id_)
+                    #print "Old task go back to queue id: %d" % (quitTask.taskQuantity_)
 
     def cpuStart(self, taskQueue):#模拟cpu状态
         self.taskQueue = taskQueue
         task0 = Task( 0, 0, 0, -1)
         self.cpu.append(task0)
         for time in range(0, 1000):#全局时间，代表进程时间
-            print "current time " +str(time)
+            #print "current time " +str(time)
             if self.taskQueue.empty() == True:
                 durTime = time - self.cpu[0].arrivalTime_
                 if durTime >= self.cpu[0].taskQuantity_:
-                    print "All task is done."
+                    #print "All task is done."
                     break
                 else:
                     continue
             task = self.taskQueue.get()
             #print task.arrivalTime_
             if task.id_ == 0 and task.priority_ > self.cpu[0].priority_:
-                print "target task come"
+                #print "target task come"
                 res = time + task.taskQuantity_ - 1
                 return res
             if time >= task.arrivalTime_ and task.priority_ > self.cpu[0].priority_:
-                print "one task come"
+                #print "one task come"
                 self.taskQueue.put(task)
                 self.popTask()
                 continue
@@ -86,6 +89,43 @@ class Dispatcher(object):
                     task.arrivalTime_ = time
                 self.taskQueue.put(task)
                 continue
+
+    def cpuStart2(self, taskQueue):#模拟cpu状态
+        del(self.cpu[0])
+        self.taskQueue = taskQueue
+        result = {}
+        for time in range(0, 11):
+            if taskQueue.empty() == True:
+                if time - self.cpu[0].arrivalTime_ >= self.cpu[0].taskQuantity_:
+                    result[self.cpu[0].id_] = time
+                    return result
+                else:
+                    continue
+            task = taskQueue.get()
+            if len(self.cpu) == 0:
+                self.cpu.append(task)
+            else:
+                #print task.priority_
+                if task.priority_ < self.cpu[0].priority_:
+                    if time - self.cpu[0].arrivalTime_ < self.cpu[0].taskQuantity_:
+                        task.arrivalTime_ += 1
+                        taskQueue.put(task)
+                    else:
+                        result[self.cpu[0].id_] = time
+                        del(self.cpu[0])
+                        self.cpu.append(task)
+                else:
+                    if time - self.cpu[0].arrivalTime_ >= self.cpu[0].taskQuantity_:
+                        result[self.cpu[0].id_] = time
+                        del(self.cpu[0])
+                        self.cpu.append(task)
+                    else:
+                        quitTask = Task(time + 1, self.cpu[0].taskQuantity_ - (time - self.cpu[0].arrivalTime_), self.cpu[0].priority_, self.cpu[0].id_)
+                        taskQueue.put(quitTask)
+                        del(self.cpu[0])
+                        self.cpu.append(task)
+        return result
+
 
     def guessTime(self, setTime, taskWithoutPriority, li, top):
         limit = setTime - taskWithoutPriority.taskQuantity_#设置结束时间到目标任务进入cpu之间，cpu全部由目标任务占据
@@ -106,10 +146,11 @@ class Dispatcher(object):
             taskWithoutPriority.priority_ = guessPriority
             tempQ.put(taskWithoutPriority)
             time = self.cpuStart(tempQ)
-            print "get res: " + str(time)
+            #print "get res: " + str(time)
             if time == setTime:
-                print("Success! find the priority: " + str(guessPriority))
-                return guessPriority, tempQ
+                #print("Success! find the priority: " + str(guessPriority))
+                print(guessPriority)
+                return guessPriority
             elif time > setTime:
                 bottom = guessPriority
             else:
@@ -137,16 +178,34 @@ class Dispatcher(object):
 #q.put(task5)
 n = int(raw_input("任务数目: "))
 lis = []
+q = Queue.PriorityQueue()
 for t in range(0, n):
     task_ = raw_input()
     li = task_.split(" ")
     task = Task(int(li[0]), int(li[1]), int(li[2]), t)
     lis.append(task)
 
+
+
 setTime = int(raw_input("目标任务完成时间: "))
 
 
 cpuDispatch = Dispatcher()
-#cpuDispatch.cpuStart(q)
-cpuDispatch.guessTime(setTime, lis[0], lis, 5)
+priority = cpuDispatch.guessTime(setTime, lis[0], lis, 5)
+for t in lis:
+    #print "id" + str(t.id_)
+    #print "time" + str(t.arrivalTime_)
+    #print "page" + str(t.taskQuantity_)
+    #print "pri" + str(t.priority_)
+    if(t.id_ == 0):
+        t.priority_ = priority
+    q.put(t)
 
+
+
+res = cpuDispatch.cpuStart2(q)
+result = ""
+for key in res:
+    result += str(res[key]) + " "
+
+print result
